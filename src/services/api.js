@@ -10,7 +10,7 @@ const baseURL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
 // When true the app uses mock data; when false it calls the real backend.
 const useMock =
-  String(import.meta.env.VITE_USE_MOCK_DATA ?? "true").toLowerCase() === "true";
+  String(import.meta.env.VITE_USE_MOCK_DATA ?? "false").toLowerCase() === "true";
 
 const apiClient = axios.create({
   baseURL,
@@ -27,6 +27,31 @@ let tasks = [...mockTasks];
 let interactions = [...mockAIInteractions];
 
 const nextId = (list) => (list.length ? Math.max(...list.map((x) => x.id)) + 1 : 1);
+
+function normalizeProject(project) {
+  return {
+    id: project.project_id ?? project.id,
+    name: project.project_name ?? project.name,
+    description: project.description,
+    techStack: Array.isArray(project.technology_stack)
+      ? project.technology_stack
+      : String(project.technology_stack ?? project.techStack ?? "")
+          .split(",")
+          .map((technology) => technology.trim())
+          .filter(Boolean),
+    createdAt: project.created_at?.slice(0, 10) ?? project.createdAt,
+  };
+}
+
+function serializeProject(project) {
+  return {
+    project_name: project.name,
+    description: project.description,
+    technology_stack: Array.isArray(project.techStack)
+      ? project.techStack.join(", ")
+      : project.techStack,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Health
@@ -70,7 +95,7 @@ export async function getProjects() {
     return [...projects];
   }
   const { data } = await apiClient.get("/api/projects");
-  return data;
+  return data.map(normalizeProject);
 }
 
 export async function getProjectById(projectId) {
@@ -79,7 +104,7 @@ export async function getProjectById(projectId) {
     return projects.find((p) => p.id === Number(projectId)) || null;
   }
   const { data } = await apiClient.get(`/api/projects/${projectId}`);
-  return data;
+  return normalizeProject(data);
 }
 
 export async function createProject(projectData) {
@@ -93,8 +118,11 @@ export async function createProject(projectData) {
     projects = [...projects, project];
     return project;
   }
-  const { data } = await apiClient.post("/api/projects", projectData);
-  return data;
+  const { data } = await apiClient.post(
+    "/api/projects",
+    serializeProject(projectData)
+  );
+  return normalizeProject(data);
 }
 
 export async function updateProject(projectId, projectData) {
@@ -105,8 +133,11 @@ export async function updateProject(projectId, projectData) {
     );
     return projects.find((p) => p.id === Number(projectId));
   }
-  const { data } = await apiClient.put(`/api/projects/${projectId}`, projectData);
-  return data;
+  const { data } = await apiClient.put(
+    `/api/projects/${projectId}`,
+    serializeProject(projectData)
+  );
+  return normalizeProject(data);
 }
 
 export async function deleteProject(projectId) {

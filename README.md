@@ -88,7 +88,7 @@ Copy `.env.example` to `.env` and adjust as needed:
 
 ```
 VITE_API_BASE_URL=http://127.0.0.1:8000
-VITE_USE_MOCK_DATA=true
+VITE_USE_MOCK_DATA=false
 ```
 
 - `VITE_API_BASE_URL`: The base URL of the future FastAPI backend.
